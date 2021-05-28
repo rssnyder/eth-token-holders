@@ -1,0 +1,16 @@
+[Unit]
+Description=eth-token-holders
+Wants=basic.target
+After=basic.target network.target
+Before=sshd.service
+
+[Service]
+SyslogIdentifier=eth-token-holders
+StandardOutput=syslog
+StandardError=syslog
+ExecReload=/bin/kill -HUP $MAINPID
+ExecStart=/etc/eth-token-holders/eth-token-holders -addr 0.0.0.0:8000
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

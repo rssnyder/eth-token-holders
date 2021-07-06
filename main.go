@@ -9,10 +9,11 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gin-gonic/gin"
+	ginprometheus "github.com/zsais/go-gin-prometheus"
 )
 
 const (
-	EthURL = "https://etherscan.io/token/%s"
+	ChainURL = "https://%s/token/%s"
 )
 
 var (
@@ -27,9 +28,22 @@ func init() {
 func main() {
 	router := gin.Default()
 
-	router.GET("/:contract", func(c *gin.Context) {
+	p := ginprometheus.NewPrometheus("gin")
+	p.Use(router)
+
+	router.GET("/:chain/:contract", func(c *gin.Context) {
 		contract := c.Param("contract")
-		tokenHolders := holders(contract)
+		var chain string
+		switch c.Param("chain") {
+		case "ethereum":
+			chain = "etherscan.io"
+		case "binance-smart-chain":
+			chain = "bscscan.com"
+		default:
+			c.String(http.StatusBadRequest, "%d", 0)
+			return
+		}
+		tokenHolders := holders(chain, contract)
 		if tokenHolders != "" {
 			c.String(http.StatusOK, "%s", tokenHolders)
 			return
@@ -40,10 +54,10 @@ func main() {
 	router.Run(*addr)
 }
 
-func holders(contract string) string {
+func holders(chain, contract string) string {
 	var holders string
 
-	reqURL := fmt.Sprintf(EthURL, contract)
+	reqURL := fmt.Sprintf(ChainURL, chain, contract)
 
 	response, err := http.Get(reqURL)
 	if err != nil {
